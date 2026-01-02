@@ -1,4 +1,4 @@
-from app.models.user import User
+from app.models.users import User
 from app.models.notes import GeneratedNote
 from app.models.tests import Test
 from app.models.assignments import Assignment

@@ -1,5 +1,5 @@
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
 
 
@@ -27,19 +27,22 @@ class Settings(BaseSettings):
     OFFLINE_MODEL_NAME: str = "phi3:mini"
     ONLINE_MODEL_NAME: str = "mistral:7b-instruct"
 
-    # Payload limits (mobile safety)
+    # Payload limits
     MAX_RESPONSE_KB_MOBILE: int = 256
     MAX_RESPONSE_KB_DESKTOP: int = 1024
 
-    # Database (placeholder – wired later)
-    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/lms"
+    # Database
+    DATABASE_URL: str
 
     # Logging
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    # ✅ THIS IS THE IMPORTANT PART
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",   # <-- ignore unknown env vars
+    )
 
 
 @lru_cache

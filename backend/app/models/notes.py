@@ -14,6 +14,8 @@ class GeneratedNote(Base):
     difficulty = Column(String(20), nullable=False)
 
     pdf_url = Column(String(500), nullable=False)
-    metadata = Column(JSON, nullable=True)
+
+    # 🔑 renamed from `metadata`
+    extra_data = Column(JSON, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
