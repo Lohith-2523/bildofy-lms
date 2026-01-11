@@ -4,6 +4,7 @@ import zipfile
 import rarfile
 from tkinter import Tk, filedialog, messagebox
 from PyPDF2 import PdfMerger
+import re
 
 def extract_pdfs_from_archive(archive_path, extract_dir):
     pdf_files = []
@@ -27,12 +28,31 @@ def extract_pdfs_from_archive(archive_path, extract_dir):
     return pdf_files
 
 def sort_pdfs(pdf_files):
-    """Sorts PDFs so that ones containing '1ps' in filename come first."""
+    """
+    Sorting order:
+    1. Intro pages (files containing '<digit>ps')
+    2. Main pages (files containing 3-digit numbers like 101, 102...)
+    3. Everything else (alphabetical)
+    """
+
+    intro_pattern = re.compile(r'\d+ps')
+    page_pattern = re.compile(r'\b(\d{3})\b')
+
     def sort_key(path):
         filename = os.path.basename(path).lower()
-        if "ps" in filename:
+
+        # Intro pages like xyz1ps.pdf
+        if intro_pattern.search(filename):
             return (0, filename)
-        return (1, filename)
+
+        # Main pages like xyz101.pdf
+        match = page_pattern.search(filename)
+        if match:
+            return (1, int(match.group(1)))
+
+        # Fallback
+        return (2, filename)
+
     return sorted(pdf_files, key=sort_key)
 
 def combine_pdfs(pdf_paths, output_path):
