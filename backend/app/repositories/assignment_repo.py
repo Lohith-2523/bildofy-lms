@@ -1,4 +1,4 @@
-from ..models.assignment import Assignment
+from ..models.assignments import Assignment
 from .base_repo import BaseRepo
 from sqlalchemy.ext.asyncio import AsyncSession
 

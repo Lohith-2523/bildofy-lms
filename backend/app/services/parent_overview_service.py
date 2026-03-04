@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app.models.progress import Progress
 from app.models.assignments import Assignment
-from app.models.tests import Test
+from app.models.test import Test
 
 
 async def get_parent_overview(

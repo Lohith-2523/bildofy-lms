@@ -5,8 +5,9 @@ from app.db.session import get_db
 from app.schemas.common import ClientContext
 from app.services.flashcards_service import generate_flashcards
 from app.services.xp_service import apply_xp_event
+from app.routers.student._guards import student_guard
 
-router = APIRouter(prefix="/api/student/flashcards", tags=["Student Flashcards"])
+router = APIRouter(prefix="/api/student/flashcards", tags=["Student Flashcards"], dependencies=[student_guard])
 
 
 @router.post("/generate")

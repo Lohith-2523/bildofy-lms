@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.users import User
+from app.models.user import User
 
 
 async def list_users(db: AsyncSession):

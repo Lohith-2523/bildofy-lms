@@ -4,12 +4,16 @@ from collections import defaultdict
 # -----------------------------
 # CONFIG
 # -----------------------------
-# Define exactly which folders to include
+# Root of the project (bildofy_lms folder)
+PROJECT_ROOT = os.path.abspath(".")
+
+# Define exactly which folders to include (relative to project root)
 INCLUDE_FOLDERS = [
-    r"frontend/bildofy-lms-lovable/src",
+    #r"frontend/bildofy-lms-lovable/src",
+    r"backend/app"
 ]
 
-OUTPUT_FILE = "combined_code_lovable.md"
+OUTPUT_FILE = "combined_code_backend.md"
 
 # Allowed code extensions ONLY
 VALID_EXTENSIONS = {
@@ -18,7 +22,7 @@ VALID_EXTENSIONS = {
     ".yml", ".yaml", ".md"
 }
 
-# Folders that MUST be excluded (explicit)
+# Folders that MUST be excluded
 EXCLUDED_FOLDERS = {
     "node_modules", "lms_venv", "venv", ".venv",
     "__pycache__", "dist", "build", ".next"
@@ -26,22 +30,23 @@ EXCLUDED_FOLDERS = {
 
 
 def is_excluded_folder(folder_name):
-    """Return True if folder should be skipped entirely."""
     if folder_name in EXCLUDED_FOLDERS:
         return True
-    
-    # Auto-skip ANY folder with env/venv in its name
+
     lowered = folder_name.lower()
     if "env" in lowered or "venv" in lowered:
         return True
-    
+
     return False
 
 
 def collect_files(start_folder):
     """Collect all valid code files from a given folder."""
     files = []
-    for dirpath, dirnames, filenames in os.walk(start_folder):
+
+    start_folder_abs = os.path.abspath(start_folder)
+
+    for dirpath, dirnames, filenames in os.walk(start_folder_abs):
 
         # Remove excluded folders dynamically
         dirnames[:] = [d for d in dirnames if not is_excluded_folder(d)]
@@ -53,17 +58,19 @@ def collect_files(start_folder):
                 continue
 
             full_path = os.path.join(dirpath, name)
-            rel_path = os.path.relpath(full_path, start_folder)
 
-            files.append((name, rel_path, full_path))
+            # 🔑 Path relative to PROJECT ROOT (bildofy_lms)
+            project_relative_path = os.path.relpath(full_path, PROJECT_ROOT)
+
+            files.append((name, project_relative_path, full_path))
 
     return files
 
 
 def group_by_filename(files):
     groups = defaultdict(list)
-    for name, rel_path, full_path in files:
-        groups[name].append((rel_path, full_path))
+    for name, project_rel_path, full_path in files:
+        groups[name].append((project_rel_path, full_path))
     return groups
 
 
@@ -72,15 +79,10 @@ def write_markdown(groups, output_file):
         md.write("# Combined Project Code\n\n")
 
         for filename, file_list in groups.items():
-            duplicate = len(file_list) > 1
-
-            for rel_path, full_path in file_list:
-
-                # Use full relative path when duplicates exist
-                label = rel_path if duplicate else filename
+            for project_rel_path, full_path in file_list:
 
                 md.write("\n---\n\n")
-                md.write(f"### `{label}`\n\n")
+                md.write(f"### `{project_rel_path}`\n\n")
                 md.write(f"```{get_language(full_path)}\n")
 
                 try:
@@ -114,7 +116,6 @@ if __name__ == "__main__":
 
     print("Starting scan...\n")
 
-    # Scan only the selected folders
     for folder in INCLUDE_FOLDERS:
         if os.path.exists(folder):
             print(f"Scanning folder: {folder}")

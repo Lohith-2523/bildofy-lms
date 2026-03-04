@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 from app.schemas.sync import SyncRequest, SyncResponse
 from app.services.sync_service import get_available_sync_items
+from app.routers.student._guards import student_guard
 
-router = APIRouter(prefix="/api/student/sync", tags=["Student Sync"])
+router = APIRouter(prefix="/api/student/sync", tags=["Student Sync"], dependencies=[student_guard])
 
 
 @router.post("/available", response_model=SyncResponse)

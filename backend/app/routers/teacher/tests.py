@@ -9,6 +9,8 @@ from app.services.teacher_test_service import (
     create_test_ai_assisted,
 )
 from app.routers.teacher._guards import teacher_guard
+from app.security import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/api/teacher/tests", tags=["Teacher Tests"])
 
@@ -18,6 +20,7 @@ async def create_test_endpoint(
     payload: TestCreateRequest,
     creation_mode: Literal["MANUAL", "AI_ASSISTED"],
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     creation_mode:
@@ -25,6 +28,6 @@ async def create_test_endpoint(
     - AI_ASSISTED → AI suggests questions & answers
     """
     if creation_mode == "AI_ASSISTED":
-        return await create_test_ai_assisted(payload, db)
+        return await create_test_ai_assisted(payload, db, current_user)
 
     return await create_test_manual(payload, db)

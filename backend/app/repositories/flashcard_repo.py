@@ -1,4 +1,4 @@
-from ..models.flashcard import FlashcardSet
+from ..models.flashcards import FlashcardSet
 from .base_repo import BaseRepo
 from sqlalchemy.ext.asyncio import AsyncSession
 import json

@@ -1,4 +1,4 @@
-from app.services.notes_service import generate_notes
+from app.services.notes_service import generate_student_notes
 from app.services.flashcards_service import generate_flashcards
 from app.services.test_service import generate_test
 from app.services.ai_service import chat_with_ai
@@ -30,7 +30,7 @@ from app.services.admin_user_service import (
 from app.services.admin_system_service import get_system_status
 from app.services.teacher_notes_service import (
     create_manual_notes,
-    create_ai_assisted_notes,
+    generate_teacher_notes,
     upload_notes_file,
 )
 from app.services.file_validation import validate_upload

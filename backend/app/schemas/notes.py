@@ -13,6 +13,6 @@ class NotesGenerateRequest(BaseModel):
 class NotesResponse(BaseModel):
     content_id: str
     summary: str
-    pdf_url: str
+    pdf_url: Optional[str] = None
     offline_ready: bool
-    expires_at: str
+    expires_at: Optional[str] = None

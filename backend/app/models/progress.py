@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, JSON
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, JSON
+from sqlalchemy.orm import relationship
+from datetime import datetime
 from app.db.session import Base
 
 
@@ -7,11 +8,11 @@ class Progress(Base):
     __tablename__ = "progress"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
 
     xp = Column(Integer, default=0)
     level = Column(Integer, default=1)
+    stats = Column(JSON, default=dict)
+    updated_at = Column(DateTime, default=datetime.utcnow)
 
-    stats = Column(JSON, nullable=True)
-
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    user = relationship("User", back_populates="progress")

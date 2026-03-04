@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/cards/StatCard';
@@ -14,21 +14,24 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const mockStats = {
-  totalStudents: 156,
-  activeAssignments: 8,
-  testsCreated: 24,
-  avgClassScore: 72,
-};
-
-const recentActivity = [
-  { id: '1', action: 'Created test', item: 'Physics Chapter 5', time: '2 hours ago' },
-  { id: '2', action: 'Graded assignment', item: 'Math Homework Set 3', time: '4 hours ago' },
-  { id: '3', action: 'AI generated notes', item: 'Chemistry Bonding', time: 'Yesterday' },
-];
-
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [analytics, setAnalytics] = useState<any | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+
+    fetch('http://localhost:8000/analytics/overview', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then(setAnalytics)
+      .catch(console.error);
+  }, []);
+
+  const classData = analytics?.scope === 'teacher' ? analytics.class : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,18 +67,18 @@ const TeacherDashboard: React.FC = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="mb-8 animate-fade-up">
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-display font-bold">
             Teacher Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your classes, create content, and track student progress.
+            Manage your classes and track performance.
           </p>
         </div>
 
         {/* Quick Actions */}
-        <section className="mb-8 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          <h2 className="text-lg font-display font-semibold text-foreground mb-4">
+        <section className="mb-8">
+          <h2 className="text-lg font-display font-semibold mb-4">
             Quick Actions
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -117,55 +120,31 @@ const TeacherDashboard: React.FC = () => {
           </div>
         </section>
 
-        {/* Stats */}
-        <section className="mb-8 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-          <h2 className="text-lg font-display font-semibold text-foreground mb-4">
-            Overview
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Students"
-              value={mockStats.totalStudents}
-              icon={Users}
-            />
-            <StatCard
-              title="Active Assignments"
-              value={mockStats.activeAssignments}
-              icon={BookOpen}
-            />
-            <StatCard
-              title="Tests Created"
-              value={mockStats.testsCreated}
-              icon={ClipboardCheck}
-            />
-            <StatCard
-              title="Class Average"
-              value={`${mockStats.avgClassScore}%`}
-              icon={TrendingUp}
-              trend={{ value: 5, isPositive: true }}
-            />
-          </div>
-        </section>
-
-        {/* Recent Activity */}
-        <section className="animate-fade-up" style={{ animationDelay: '0.3s' }}>
-          <h2 className="text-lg font-display font-semibold text-foreground mb-4">
-            Recent Activity
-          </h2>
-          <div className="bg-card border border-border rounded-xl divide-y divide-border">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">{activity.action}</p>
-                  <p className="text-sm text-muted-foreground">{activity.item}</p>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {activity.time}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Overview */}
+        {classData && (
+          <section className="mb-8">
+            <h2 className="text-lg font-display font-semibold mb-4">
+              Overview
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                title="Total Students"
+                value={classData.students}
+                icon={Users}
+              />
+              <StatCard
+                title="Average Score"
+                value={classData.average_score}
+                icon={ClipboardCheck}
+              />
+              <StatCard
+                title="Class Average"
+                value={`${classData.average_percentage}%`}
+                icon={TrendingUp}
+              />
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

@@ -7,7 +7,7 @@ from app.routers.teacher._guards import teacher_guard
 from app.schemas.notes import NotesGenerateRequest, NotesResponse
 from app.services.teacher_notes_service import (
     create_manual_notes,
-    create_ai_assisted_notes,
+    generate_teacher_notes,
     upload_notes_file,
 )
 
@@ -29,7 +29,7 @@ async def create_notes(
     AI_ASSISTED → teacher provides outline, AI expands
     """
     if creation_mode == "AI_ASSISTED":
-        return await create_ai_assisted_notes(payload, db)
+        return await generate_teacher_notes(payload, db)
 
     return await create_manual_notes(payload, db)
 

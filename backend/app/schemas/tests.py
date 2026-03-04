@@ -10,8 +10,11 @@ class TestQuestion(BaseModel):
 
 class TestCreateRequest(BaseModel):
     title: str
+    subject_id: int
     subject: str
+    chapter: str
     difficulty: str
+    ai_assisted: bool
 
 
 class TestResponse(BaseModel):

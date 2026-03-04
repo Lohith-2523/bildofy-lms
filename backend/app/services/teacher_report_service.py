@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.progress import Progress
-from app.models.tests import Test
+from app.models.test import Test
 from app.models.assignments import Assignment
 
 

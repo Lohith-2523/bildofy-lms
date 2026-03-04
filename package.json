@@ -19,7 +19,7 @@
   },
   
   "scripts": {
-    "dev:frontend": "cd frontend/bildofy-lms-frontend && npm run dev",
+    "dev:frontend": "cd frontend/bildofy-lms-lovable && npm run dev",
     "dev:backend": "cd backend && lms_venv\\Scripts\\python.exe -m uvicorn app.main:app --loop asyncio",
     "dev:worker": "cd backend && lms_venv\\Scripts\\activate && rq worker lms_queue",
     "dev:all": "concurrently -k -n FRONTEND,BACKEND,REDIS,WORKER -c cyan,green,magenta \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:worker\""

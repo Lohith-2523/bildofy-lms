@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.db.session import get_db
 from app.models.assignments import Assignment
-from app.models.tests import Test
+from app.models.test import Test
 
 router = APIRouter(prefix="/api/admin/content", tags=["Admin Content"])
 

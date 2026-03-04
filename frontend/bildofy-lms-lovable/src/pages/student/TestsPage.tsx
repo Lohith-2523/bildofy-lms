@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { XPBadge } from '@/components/gamification/XPBadge';
 import { ProgressRing } from '@/components/progress/ProgressRing';
 import { useOnlineStatus } from '@/contexts/OnlineContext';
+import MarkdownKatexRenderer from '@/components/MarkdownKatexRenderer';
 import {
   ArrowLeft,
   ClipboardCheck,
@@ -13,49 +14,76 @@ import {
   Trophy,
   Zap,
   WifiOff,
-  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+
+interface Question {
+  id: number;
+  question: string;
+  options: string[];
+   correct_answer: string;
+}
+
+interface TestData {
+  id: number;
+  subject_id: number;
+  difficulty: string;
+  total_questions: number;
+  questions: Question[];
+}
+
+interface AnswerSubmission {
+  question_id: number;
+  selected_answer: string;
+}
+
 
 type Difficulty = 'easy' | 'medium' | 'hard';
-type ViewState = 'list' | 'instructions' | 'attempt' | 'result';
 
-type Test = {
-  id: string;
+type TestSummary = {
+  id: number;
   title: string;
   subject: string;
-  questions: number;
-  duration: number;
   difficulty: Difficulty;
-  xpReward: number;
-  isCompleted: boolean;
-  bestScore: number | null;
+  total_questions: number;
+  duration: number;
+  xp_reward: number;
+  is_completed: boolean;
+  best_score: number | null;
 };
 
-const mockTests: Test[] = [
-  {
-    id: '1',
-    title: 'Physics - Motion',
-    subject: 'Physics',
-    questions: 5,
-    duration: 5,
-    difficulty: 'medium',
-    xpReward: 100,
-    isCompleted: false,
-    bestScore: null,
-  },
-  {
-    id: '2',
-    title: 'Chemistry - Periodic Table',
-    subject: 'Chemistry',
-    questions: 5,
-    duration: 5,
-    difficulty: 'easy',
-    xpReward: 75,
-    isCompleted: true,
-    bestScore: 85,
-  },
-];
+type FullTest = {
+  id: number;
+  title: string;
+  questions: Question[];
+};
+
+const SUBJECTS = {
+  Science: ["Electrostatics", "Magnetism"],
+  Mathematics: ["Trigonometry", "Differential Calculus"],
+  "Computer Science": ["Basics of Python", "Basics of SQL"],
+};
+const SUBJECT_ID_MAP: Record<string, number> = {
+  Science: 1,
+  Mathematics: 2,
+  "Computer Science": 3,
+};
+
+const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 const difficultyConfig = {
   easy: { label: 'Easy', color: 'bg-success/10 text-success border-success/30' },
@@ -63,70 +91,294 @@ const difficultyConfig = {
   hard: { label: 'Hard', color: 'bg-destructive/10 text-destructive border-destructive/30' },
 };
 
-const mockQuestions = [
-  {
-    id: 1,
-    question: 'What is the SI unit of velocity?',
-    options: ['m/s', 'm', 'kg', 'N'],
-    correct: 'm/s',
-  },
-  {
-    id: 2,
-    question: 'Which law explains inertia?',
-    options: ['First Law', 'Second Law', 'Third Law', 'Law of Gravitation'],
-    correct: 'First Law',
-  },
-];
-
 const TestsPage: React.FC = () => {
   const { isOnline } = useOnlineStatus();
+  const navigate = useNavigate();
+  const { testId } = useParams();
+  const token = localStorage.getItem('access_token');
 
-  const [view, setView] = useState<ViewState>('list');
-  const [selectedTest, setSelectedTest] = useState<Test | null>(null);
+  const [tests, setTests] = useState<TestSummary[]>([]);
+  const [test, setTest] = useState<FullTest | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState<number | null>(null);
+  const [percentage, setPercentage] = useState<number | null>(null);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [result, setResult] = useState<any | null>(null);
+  const [xpEarned, setXpEarned] = useState<number | null>(null);
+  const [totalXp, setTotalXp] = useState<number | null>(null);
 
-  /* ---------------- TIMER ---------------- */
-  useEffect(() => {
-    if (view !== 'attempt') return;
-    const timer = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(timer);
-          submitTest();
-          return 0;
+
+  const [subject, setSubject] = useState<string | null>(null);
+  const [chapter, setChapter] = useState<string | null>(null);
+  const [difficulty, setDifficulty] = useState<string | null>(null);
+
+  const GENERATION_COOLDOWN_MS = 60 * 1000; // 1 minute (UI only)
+  const [lastGeneratedAt, setLastGeneratedAt] = useState<number | null>(null);
+
+  const isOnCooldown =
+    lastGeneratedAt !== null &&
+    Date.now() - lastGeneratedAt < GENERATION_COOLDOWN_MS;
+
+  const cooldownRemaining = lastGeneratedAt
+    ? Math.max(
+        0,
+        Math.ceil(
+          (GENERATION_COOLDOWN_MS - (Date.now() - lastGeneratedAt)) / 1000
+        )
+      )
+    : 0;
+  
+  const handleGenerateTest = async () => {
+    if (!subject || !chapter || !difficulty || isOnCooldown) return;
+
+    setShowGenerateModal(false);
+    setShowLoadingModal(true);
+
+    try {
+      const res = await fetch(
+        "http://localhost:8000/student/tests/generate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+             title: `${subject} – ${chapter} (${difficulty})`,
+              subject_id: SUBJECT_ID_MAP[subject], // always 2
+              subject: subject,
+              chapter: chapter,
+              difficulty: difficulty,
+          }),
         }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [view]);
+      );
 
-  const startTest = (test: Test) => {
-    setSelectedTest(test);
-    setTimeLeft(test.duration * 60);
-    setCurrentIndex(0);
-    setAnswers({});
-    setScore(0);
-    setView('instructions');
+      if (!res.ok) {
+        throw new Error("Failed to generate test");
+      }
+
+      // mark cooldown
+      setLastGeneratedAt(Date.now());
+
+      // refresh test list
+      await fetchTests();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setShowLoadingModal(false);
+    }
   };
 
-  const submitTest = () => {
-    let s = 0;
-    mockQuestions.forEach((q) => {
-      if (answers[q.id] === q.correct) s += 1;
+  /* ================= LIST TESTS ================= */
+  const fetchTests = async () => {
+  const res = await fetch("http://localhost:8000/student/tests", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
-    setScore(Math.round((s / mockQuestions.length) * 100));
-    setView('result');
+
+    const data = await res.json();
+    setTests(data);
   };
 
-  /* ---------------- UI ---------------- */
+  useEffect(() => {
+    if (!token || testId) return;
+    fetchTests();
+  }, [token, testId]);
 
+
+  /* ================= LOAD TEST BY ID ================= */
+  useEffect(() => {
+    if (!token || !testId) return;
+
+    fetch(`http://localhost:8000/student/tests/${testId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setTest(data);
+        setAnswers({});
+        setCurrentIndex(0);
+        setScore(null);
+      });
+  }, [token, testId]);
+
+/* ================= SUBMIT ================= */
+const submitTest = async () => {
+  if (!test) return;
+
+  const structuredAnswers = test.questions.map((q, index) => ({
+    question_id: q.id,
+    selected_answer: answers[index] ?? "",
+  }));
+
+  const res = await fetch(
+    `http://localhost:8000/student/tests/${test.id}/submit`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ answers: structuredAnswers }),
+    }
+  );
+
+  const data = await res.json();
+
+  setScore(data.score);
+  setPercentage(data.percentage);
+  setResult(data);
+  setXpEarned(data.xp_earned);
+  setTotalXp(data.total_xp);
+};
+
+  /* ================= OFFLINE ================= */
+  if (!isOnline) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        <WifiOff className="mx-auto mb-2" />
+        Tests require an internet connection.
+      </div>
+    );
+  }
+
+  if (testId && !test) {
+    return (
+      <div className="p-6 text-center text-muted-foreground">
+        Loading test…
+      </div>
+    );
+  }
+
+  /* ================= TEST INTERFACE ================= */
+  if (testId && test) {
+    const q = test.questions[currentIndex];
+
+    return (
+      <div className="min-h-screen bg-background p-6 space-y-6">
+        <Button variant="ghost" onClick={() => navigate("/student/tests")}>
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Back
+        </Button>
+
+        {score === null ? (
+          <>
+            <MarkdownKatexRenderer content={q.question} />
+
+            <div className="space-y-2">
+              {q.options.map((opt, idx) => (
+                <Button
+                  key={idx}
+                  variant={answers[currentIndex] === opt ? 'default' : 'outline'}
+                  className="w-full justify-start"
+                  onClick={() =>
+                    setAnswers((a) => ({ ...a, [currentIndex]: opt }))
+                  }
+                >
+                  <MarkdownKatexRenderer content={opt} />
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                disabled={currentIndex === 0}
+                onClick={() => setCurrentIndex((i) => i - 1)}
+              >
+                Previous
+              </Button>
+
+              {currentIndex === test.questions.length - 1 ? (
+                <Button onClick={submitTest}>Submit</Button>
+              ) : (
+                <Button onClick={() => setCurrentIndex((i) => i + 1)}>
+                  Next
+                </Button>
+              )}
+            </div>
+          </>
+          ) : (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold">Result</h2>
+              <p className="text-lg">
+                Score: {score} / {test.questions.length} ({percentage}%)
+              </p>
+
+            </div>
+
+            <div className="space-y-4">
+              {result.results.map((r: any) => {
+                const question = test.questions[r.question_index];
+                const attemptedAnswer = answers[r.question_index];
+                const actualCorrectAnswer = question.correct_answer;
+
+                return (
+                  <div
+                    key={r.question_index}
+                    className={`p-4 rounded-lg border ${
+                      r.is_correct
+                        ? "bg-green-50 border-green-300"
+                        : "bg-red-50 border-red-300"
+                    }`}
+                  >
+                    <div className="mb-2 font-semibold">
+                      Question {r.question_index + 1}
+                    </div>
+
+                    <div className="mb-3">
+                      <MarkdownKatexRenderer content={question.question} />
+                    </div>
+
+                    <div className="text-sm space-y-1">
+                      <div>
+                        <span className="font-medium">Your Answer: </span>
+                        <span
+                          className={
+                            r.is_correct ? "text-green-700" : "text-red-700"
+                          }
+                        >
+                          {attemptedAnswer || "Not answered"}
+                        </span>
+                      </div>
+
+                      {!r.is_correct && (
+                        <div>
+                          <span className="font-medium">Correct Answer: </span>
+                          <span className="text-green-700">
+                            {actualCorrectAnswer}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+
+            <div className="flex justify-center gap-4">
+              <div className="px-4 py-2 rounded-lg bg-xp/10 text-xp font-semibold">
+                +{xpEarned} XP
+              </div>
+              <div className="px-4 py-2 rounded-lg bg-muted">
+                Total XP: {totalXp}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    );
+  }
+
+  /* ================= TEST LIST ================= */
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link to="/student">
@@ -140,168 +392,181 @@ const TestsPage: React.FC = () => {
           </div>
         </div>
       </header>
+      
 
       <main className="container mx-auto px-4 py-6">
-        {!isOnline && (
-          <div className="mb-6 p-4 rounded-xl bg-offline/10 border border-offline/30 flex items-center gap-3">
-            <WifiOff className="w-5 h-5 text-offline" />
-            <p className="text-sm">You’re offline. Tests need internet.</p>
-          </div>
-        )}
+       <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-display font-semibold text-foreground">
+          Available Tests
+        </h2>
 
-        {/* ================= LIST ================= */}
-        {view === 'list' && (
-          <>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="p-4 rounded-xl bg-card border text-center">
-                <Target className="w-6 h-6 mx-auto text-primary mb-2" />
-                <p className="text-2xl font-bold">24</p>
-                <p className="text-xs text-muted-foreground">Tests Taken</p>
-              </div>
-              <div className="p-4 rounded-xl bg-card border text-center">
-                <Trophy className="w-6 h-6 mx-auto text-xp mb-2" />
-                <p className="text-2xl font-bold">78%</p>
-                <p className="text-xs text-muted-foreground">Avg Score</p>
-              </div>
-              <div className="p-4 rounded-xl bg-card border text-center">
-                <Zap className="w-6 h-6 mx-auto text-accent mb-2" />
-                <p className="text-2xl font-bold">2.4K</p>
-                <p className="text-xs text-muted-foreground">Total XP</p>
-              </div>
+        <div className="relative">
+          <Button
+            onClick={() => setShowGenerateModal(true)}
+            disabled={isOnCooldown}
+          >
+            Generate Test
+          </Button>
+
+
+            {/* XP Overlay */}
+            <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+              <Zap className="w-3 h-3" />
+              {isOnCooldown ? `${cooldownRemaining}s` : "+100 XP"}
             </div>
+          </div>
+        </div>
+        <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Generate Test</DialogTitle>
+            </DialogHeader>
 
-            <h2 className="text-lg font-semibold mb-4">Available Tests</h2>
+            <div className="space-y-4">
+              {/* Subject */}
+              <Select
+                value={subject ?? ""}
+                onValueChange={(val) => {
+                  setSubject(val);
+                  setChapter(null);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(SUBJECTS).map((subj) => (
+                    <SelectItem key={subj} value={subj}>
+                      {subj}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <div className="grid gap-4">
-              {mockTests.map((test, index) => {
-                const difficulty = difficultyConfig[test.difficulty];
-                return (
-                  <div
-                    key={test.id}
-                    className={cn(
-                      'p-5 rounded-xl bg-card border shadow-sm hover:shadow-md',
-                      test.isCompleted && 'bg-success/5'
-                    )}
-                  >
-                    <div className="flex justify-between">
-                      <div>
-                        <span className={cn('text-xs px-2 py-0.5 rounded-full border', difficulty.color)}>
-                          {difficulty.label}
-                        </span>
-                        <h3 className="font-semibold mt-1">{test.title}</h3>
-                        <div className="text-sm text-muted-foreground flex gap-4">
-                          <span>{test.questions} questions</span>
-                          <span>{test.duration} min</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        {!test.isCompleted && <XPBadge xp={test.xpReward} />}
-                        <Button
-                          size="sm"
-                          disabled={!isOnline}
-                          onClick={() => startTest(test)}
-                        >
-                          <Play className="w-4 h-4 mr-1" />
-                          Start Test
-                        </Button>
-                      </div>
+              {/* Chapter */}
+              <Select
+                value={chapter ?? ""}
+                onValueChange={setChapter}
+                disabled={!subject}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Chapter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subject &&
+                    SUBJECTS[subject].map((chap) => (
+                      <SelectItem key={chap} value={chap}>
+                        {chap}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              {/* Difficulty */}
+              <Select
+                value={difficulty ?? ""}
+                onValueChange={setDifficulty}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIFFICULTIES.map((diff) => (
+                    <SelectItem key={diff} value={diff}>
+                      {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                className="w-full"
+                disabled={!subject || !chapter || !difficulty}
+                onClick={handleGenerateTest}
+              >
+                Generate Test
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={showLoadingModal}>
+          <DialogContent className="sm:max-w-sm text-center">
+            <div className="flex flex-col items-center gap-4 py-6">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">
+                Generating your test…
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+
+        <div className="grid gap-4">
+          {tests.map((test, index) => {
+            const difficulty =
+              difficultyConfig[test.difficulty as keyof typeof difficultyConfig] ??
+              difficultyConfig.medium;
+
+            return (
+              <div
+                key={test.id}
+                className={cn(
+                  'p-5 rounded-xl bg-card border border-border shadow-sm transition-all duration-200',
+                  'hover:shadow-md hover:border-primary/30',
+                  test.is_completed && 'bg-success/5 border-success/20'
+                )}
+              >
+
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className={cn('text-xs px-2 py-0.5 rounded-full border', difficulty.color)}>
+                      {difficulty.label}
+                    </span>
+                    <h3 className="font-semibold mt-1">{test.title}</h3>
+                    <div className="text-sm text-muted-foreground flex gap-4">
+                      <span>{test.total_questions} questions</span>
+                      <span>{test.duration} min</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </>
-        )}
 
-        {/* ================= INSTRUCTIONS ================= */}
-        {view === 'instructions' && selectedTest && (
-          <div className="max-w-xl mx-auto space-y-6">
-            <h2 className="text-2xl font-bold">{selectedTest.title}</h2>
-            <ul className="list-disc ml-5 text-sm text-muted-foreground">
-              <li>{selectedTest.questions} MCQs</li>
-              <li>{selectedTest.duration} minutes</li>
-              <li>No negative marking</li>
-              <li>Auto-submit on timeout</li>
-            </ul>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setView('list')}>
-                Cancel
-              </Button>
-              <Button onClick={() => setView('attempt')}>Start Test</Button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= ATTEMPT ================= */}
-        {view === 'attempt' && selectedTest && (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex justify-between text-sm">
-              <span>
-                Question {currentIndex + 1} / {mockQuestions.length}
-              </span>
-              <span>
-                ⏱ {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-              </span>
-            </div>
-
-            <h3 className="font-semibold">
-              {mockQuestions[currentIndex].question}
-            </h3>
-
-            <div className="space-y-2">
-              {mockQuestions[currentIndex].options.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() =>
-                    setAnswers({ ...answers, [mockQuestions[currentIndex].id]: opt })
-                  }
-                  className={cn(
-                    'w-full p-3 rounded border text-left',
-                    answers[mockQuestions[currentIndex].id] === opt &&
-                      'border-primary bg-primary/5'
-                  )}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-between">
-              <Button
-                variant="outline"
-                disabled={currentIndex === 0}
-                onClick={() => setCurrentIndex((i) => i - 1)}
-              >
-                Previous
-              </Button>
-
-              {currentIndex === mockQuestions.length - 1 ? (
-                <Button onClick={submitTest}>Submit</Button>
-              ) : (
-                <Button onClick={() => setCurrentIndex((i) => i + 1)}>
-                  Next
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ================= RESULT ================= */}
-        {view === 'result' && selectedTest && (
-          <div className="text-center space-y-6 py-12">
-            <CheckCircle className="w-12 h-12 mx-auto text-success" />
-            <h2 className="text-3xl font-bold">Test Completed 🎉</h2>
-            <p className="text-xl">Score: {score}%</p>
-            <Button
-              onClick={() => {
-                setView('list');
-                setSelectedTest(null);
-              }}
-            >
-              Back to Tests
-            </Button>
-          </div>
-        )}
+                  <div className="flex flex-col items-end gap-2">
+                    {test.is_completed ? (
+                      <>
+                        <ProgressRing
+                          progress={
+                            test.best_score !== null
+                              ? Math.round((test.best_score / test.total_questions) * 100)
+                              : 0
+                          }
+                          size={75}
+                          color="success"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/student/tests/${test.id}`)}
+                        >
+                          Retry
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <XPBadge xp={test.xp_reward} />
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/student/tests/${test.id}`)}
+                        >
+                          Start Test
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </main>
     </div>
   );

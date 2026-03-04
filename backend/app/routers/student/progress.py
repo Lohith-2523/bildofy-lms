@@ -4,8 +4,9 @@ from sqlalchemy import select
 
 from app.db.session import get_db
 from app.models.progress import Progress
+from app.routers.student._guards import student_guard
 
-router = APIRouter(prefix="/api/student/progress", tags=["Student Progress"])
+router = APIRouter(prefix="/api/student/progress", tags=["Student Progress"], dependencies=[student_guard])
 
 
 @router.get("/")
