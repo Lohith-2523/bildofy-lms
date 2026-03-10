@@ -4,6 +4,7 @@ from app.security.roles import Role
 
 
 class SignupRequest(BaseModel):
+    name: Optional[str] = None
     email: EmailStr
     password: str
     role: str  # student | teacher

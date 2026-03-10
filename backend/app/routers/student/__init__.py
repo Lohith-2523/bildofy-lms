@@ -5,3 +5,5 @@ from app.routers.student.ai_chat import router as ai_chat_router
 from app.routers.student.progress import router as progress_router
 from app.routers.student.sync import router as sync_router
 from app.routers.student.teacher_notes import router as teacher_notes_router
+from app.routers.student.assignments import router as assignments_router
+from app.routers.student.attendance import router as attendance_router

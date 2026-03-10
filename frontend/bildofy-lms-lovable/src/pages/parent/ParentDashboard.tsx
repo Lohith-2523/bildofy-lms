@@ -1,14 +1,9 @@
 import React from 'react';
+import { addDays } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { StatCard } from '@/components/cards/StatCard';
-import { ProgressRing } from '@/components/progress/ProgressRing';
-import { XPBar } from '@/components/gamification/XPBar';
 import {
-  BookOpen,
   Clock,
   Trophy,
-  TrendingUp,
   Calendar,
   Settings,
   LogOut,
@@ -16,6 +11,11 @@ import {
   Flame,
   Star,
 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { StatCard } from '@/components/cards/StatCard';
+import { XPBar } from '@/components/gamification/XPBar';
+import { formatDisplayDate } from '@/lib/date';
 
 const mockChildData = {
   name: 'Arjun Sharma',
@@ -28,7 +28,7 @@ const mockChildData = {
   weeklyStudyTime: '12h 30m',
   testsThisWeek: 4,
   avgScore: 78,
-  assignmentsCompleted: 6,
+  attendance: 92,
 };
 
 const weeklyInsights = [
@@ -40,7 +40,6 @@ const weeklyInsights = [
 const ParentDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -75,14 +74,12 @@ const ParentDashboard: React.FC = () => {
             Parent Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Monitor {mockChildData.name}'s learning progress and achievements.
+            Monitor {mockChildData.name}&apos;s learning progress and achievements.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Child Overview Card */}
             <section className="p-6 rounded-xl bg-card border border-border shadow-sm animate-fade-up" style={{ animationDelay: '0.1s' }}>
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center text-2xl font-bold text-primary-foreground">
@@ -90,7 +87,7 @@ const ParentDashboard: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h2 className="text-xl font-display font-bold text-foreground">{mockChildData.name}</h2>
-                  <p className="text-muted-foreground">{mockChildData.grade} • {mockChildData.board}</p>
+                  <p className="text-muted-foreground">{mockChildData.grade} / {mockChildData.board}</p>
                 </div>
                 <div className="text-right">
                   <div className="flex items-center gap-1 text-streak font-bold">
@@ -106,35 +103,21 @@ const ParentDashboard: React.FC = () => {
               />
             </section>
 
-            {/* Weekly Stats */}
             <section className="animate-fade-up" style={{ animationDelay: '0.2s' }}>
-              <h2 className="text-lg font-display font-semibold text-foreground mb-4">This Week's Performance</h2>
+              <h2 className="text-lg font-display font-semibold text-foreground mb-4">This Week&apos;s Performance</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard
-                  title="Study Time"
-                  value={mockChildData.weeklyStudyTime}
-                  icon={Clock}
-                />
-                <StatCard
-                  title="Tests Taken"
-                  value={mockChildData.testsThisWeek}
-                  icon={Target}
-                />
+                <StatCard title="Study Time" value={mockChildData.weeklyStudyTime} icon={Clock} />
+                <StatCard title="Tests Taken" value={mockChildData.testsThisWeek} icon={Target} />
                 <StatCard
                   title="Average Score"
                   value={`${mockChildData.avgScore}%`}
                   icon={Trophy}
                   trend={{ value: 8, isPositive: true }}
                 />
-                <StatCard
-                  title="Assignments"
-                  value={mockChildData.assignmentsCompleted}
-                  icon={BookOpen}
-                />
+                <StatCard title="Attendance" value={`${mockChildData.attendance}%`} icon={Calendar} />
               </div>
             </section>
 
-            {/* AI Insights */}
             <section className="animate-fade-up" style={{ animationDelay: '0.3s' }}>
               <h2 className="text-lg font-display font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Star className="w-5 h-5 text-xp" />
@@ -157,9 +140,7 @@ const ParentDashboard: React.FC = () => {
             </section>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Subject Progress */}
             <div className="p-5 rounded-xl bg-card border border-border shadow-sm animate-fade-up" style={{ animationDelay: '0.15s' }}>
               <h3 className="font-display font-semibold text-foreground mb-4">Subject Progress</h3>
               <div className="space-y-4">
@@ -185,7 +166,6 @@ const ParentDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Upcoming */}
             <div className="p-5 rounded-xl bg-card border border-border shadow-sm animate-fade-up" style={{ animationDelay: '0.25s' }}>
               <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-primary" />
@@ -194,11 +174,15 @@ const ParentDashboard: React.FC = () => {
               <div className="space-y-3">
                 <div className="p-3 rounded-lg bg-secondary/50">
                   <p className="font-medium text-foreground text-sm">Physics Test</p>
-                  <p className="text-xs text-muted-foreground">Tomorrow • Chapter 5</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDisplayDate(addDays(new Date(), 1))} / Chapter 5
+                  </p>
                 </div>
                 <div className="p-3 rounded-lg bg-secondary/50">
                   <p className="font-medium text-foreground text-sm">Math Assignment</p>
-                  <p className="text-xs text-muted-foreground">In 2 days • Calculus</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDisplayDate(addDays(new Date(), 2))} / Calculus
+                  </p>
                 </div>
               </div>
             </div>

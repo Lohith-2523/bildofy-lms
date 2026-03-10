@@ -1,14 +1,16 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
-import { XPBadge } from '@/components/gamification/XPBadge';
-import { 
-  Calendar, 
-  FileText, 
-  ClipboardCheck, 
+import { isPast } from 'date-fns';
+import {
+  Calendar,
+  FileText,
+  ClipboardCheck,
   GraduationCap,
-  Clock
+  Clock,
 } from 'lucide-react';
-import { format, isToday, isTomorrow, isPast } from 'date-fns';
+
+import { XPBadge } from '@/components/gamification/XPBadge';
+import { formatDisplayDate } from '@/lib/date';
+import { cn } from '@/lib/utils';
 
 type EventType = 'assignment' | 'test' | 'exam' | 'event';
 
@@ -35,12 +37,6 @@ const eventConfig: Record<EventType, { icon: typeof Calendar; color: string; lab
   event: { icon: Calendar, color: 'bg-success/10 text-success border-success/30', label: 'Event' },
 };
 
-const formatEventDate = (date: Date): string => {
-  if (isToday(date)) return 'Today';
-  if (isTomorrow(date)) return 'Tomorrow';
-  return format(date, 'EEE, MMM d');
-};
-
 export const AcademicTimeline: React.FC<AcademicTimelineProps> = ({
   events,
   onEventClick,
@@ -55,7 +51,6 @@ export const AcademicTimeline: React.FC<AcademicTimelineProps> = ({
         Upcoming Events
       </h3>
       <div className="relative">
-        {/* Timeline line */}
         <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-border" />
 
         <div className="space-y-3">
@@ -77,7 +72,6 @@ export const AcademicTimeline: React.FC<AcademicTimelineProps> = ({
                   isOverdue && 'border-destructive/30'
                 )}
               >
-                {/* Icon */}
                 <div
                   className={cn(
                     'absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-2 flex items-center justify-center bg-card',
@@ -104,8 +98,8 @@ export const AcademicTimeline: React.FC<AcademicTimelineProps> = ({
                     </div>
                     <h4 className="font-semibold text-foreground mt-1 truncate">{event.title}</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {event.subject && `${event.subject} • `}
-                      {formatEventDate(event.date)}
+                      {event.subject && `${event.subject} / `}
+                      {formatDisplayDate(event.date)}
                     </p>
                   </div>
                   {event.xpReward && !event.isCompleted && (

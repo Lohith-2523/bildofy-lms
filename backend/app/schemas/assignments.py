@@ -15,3 +15,19 @@ class AssignmentResponse(BaseModel):
     title: str
     subject: str
     due_date: datetime
+
+
+class TeacherAssignmentCreateRequest(BaseModel):
+    title: str
+    subject: str
+    due_date: datetime
+    mode: Literal["LMS", "PDF"]
+    content: Optional[str] = None
+
+
+class StudentAssignmentListItem(BaseModel):
+    id: int
+    title: str
+    subject: str
+    due_date: datetime
+    mode: Literal["LMS", "PDF"]

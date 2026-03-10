@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 export const SubjectPerformanceChart = ({ data }: { data: any[] }) => (
   <div className="h-64">
@@ -7,7 +7,9 @@ export const SubjectPerformanceChart = ({ data }: { data: any[] }) => (
         <XAxis dataKey="subject" />
         <YAxis />
         <Tooltip />
+        <Legend />
         <Bar dataKey="average_percentage" fill="#6366f1" />
+        <Bar dataKey="attendance_percentage" fill="#0f766e" />
       </BarChart>
     </ResponsiveContainer>
   </div>

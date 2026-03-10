@@ -12,7 +12,9 @@ from app.models.test_attempt import TestAttempt
 from app.models.test_answer import TestAnswer
 from app.models.audit_log import AuditLog
 from app.models.notes import GeneratedNote
+from app.models.flashcards import FlashcardSet
 from app.models.subject_student import SubjectStudent
+from app.models.attendance import AttendanceRecord
 
 __all__ = [
     "Base",
@@ -20,5 +22,7 @@ __all__ = [
     "Subject",
     "Test",
     "GeneratedNote",
+    "FlashcardSet",
+    "AttendanceRecord",
     "AuditLog",
 ]

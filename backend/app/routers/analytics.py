@@ -18,15 +18,26 @@ async def analytics_overview(
     if current_user.role == UserRole.teacher:
         return {
             "scope": "teacher",
+            "teacher": {
+                "id": current_user.id,
+                "name": current_user.name or f"Teacher {current_user.id}",
+            },
             "class": await AnalyticsService.class_overview(
                 db=db, class_id=current_user.class_id
             ),
-            "subjects": await AnalyticsService.subject_overview(db=db),
+            "subjects": await AnalyticsService.subject_overview(
+                db=db,
+                teacher_id=current_user.id,
+            ),
         }
 
     if current_user.role == UserRole.student:
         return {
             "scope": "student",
+            "student": {
+                "id": current_user.id,
+                "name": current_user.name or f"Student {current_user.id}",
+            },
             "data": await AnalyticsService.student_overview(
                 db=db, student_id=current_user.id
             ),
@@ -44,7 +55,7 @@ async def analytics_students(
     if current_user.role != UserRole.teacher:
         raise HTTPException(status_code=403)
 
-    return await StudentAnalyticsService.class_students_overview(
+    return await StudentAnalyticsService.teacher_students_overview(
         db=db,
-        class_id=current_user.class_id,
+        teacher_id=current_user.id,
     )

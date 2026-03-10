@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.models.test_attempt import TestAttempt
 from sqlalchemy.orm import selectinload
+import io
+from fpdf import FPDF
 
 from app.db.session import get_db
 from app.services.teacher_test_service import create_test_ai_assisted
@@ -42,6 +45,7 @@ async def get_test_for_student(
             "id": q.id,
             "question": q.question_text,
             "options": q.options,
+            "question_type": "MCQ" if q.options else "SUBJECTIVE",
         }
         for q in sorted(test.questions, key=lambda x: x.question_order)
     ]
@@ -132,6 +136,7 @@ async def list_tests_for_student(
                 "subject_id": t.subject_id,
                 "difficulty": t.difficulty,
                 "total_questions": len(questions),
+                "question_type": "MCQ" if all((q.options and len(q.options) > 0) for q in t.questions) else "SUBJECTIVE",
 
                 # --------- Aggregated fields ---------
                 "duration": len(questions),
@@ -177,5 +182,48 @@ async def generate_test_for_student(
 
     test = await create_test_ai_assisted(test_request, db, current_user)
     return {"id": test.id, "title": test.title}
+
+
+@router.get("/{test_id}/paper/pdf")
+async def export_test_question_paper_pdf(
+    test_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Test).options(selectinload(Test.questions)).where(Test.id == test_id)
+    )
+    test = result.scalar_one_or_none()
+    if not test:
+        raise HTTPException(status_code=404, detail="Test not found")
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.multi_cell(0, 10, txt=test.title or "Test Paper")
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "", 12)
+    pdf.multi_cell(0, 8, txt=f"Difficulty: {test.difficulty}")
+    pdf.multi_cell(0, 8, txt=f"Total Questions: {len(test.questions)}")
+    pdf.ln(5)
+
+    for idx, q in enumerate(sorted(test.questions, key=lambda x: x.question_order), 1):
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.multi_cell(0, 8, txt=f"Q{idx}. {q.question_text}")
+        if q.options:
+            pdf.set_font("Helvetica", "", 11)
+            for opt in q.options:
+                pdf.multi_cell(0, 7, txt=f" - {opt}")
+        pdf.ln(2)
+
+    output = bytes(pdf.output(dest="S"))
+    return StreamingResponse(
+        io.BytesIO(output),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="test_{test_id}_paper.pdf"'
+        },
+    )
 
 

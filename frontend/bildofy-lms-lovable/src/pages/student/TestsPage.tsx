@@ -14,6 +14,7 @@ import {
   Trophy,
   Zap,
   WifiOff,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -60,6 +61,7 @@ type TestSummary = {
   subject: string;
   difficulty: Difficulty;
   total_questions: number;
+  question_type?: "MCQ" | "SUBJECTIVE";
   duration: number;
   xp_reward: number;
   is_completed: boolean;
@@ -168,6 +170,29 @@ const TestsPage: React.FC = () => {
       console.error(err);
     } finally {
       setShowLoadingModal(false);
+    }
+  };
+
+  const handleDownloadPaper = async (testId: number) => {
+    try {
+      const res = await fetch(`http://localhost:8000/student/tests/${testId}/paper/pdf`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error("Failed to download paper");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `test_${testId}_paper.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -549,16 +574,40 @@ const submitTest = async () => {
                         >
                           Retry
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadPaper(test.id)}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Export PDF
+                        </Button>
                       </>
                     ) : (
                       <>
                         <XPBadge xp={test.xp_reward} />
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(`/student/tests/${test.id}`)}
-                        >
-                          Start Test
-                        </Button>
+                        <div className="flex gap-2">
+                          {test.question_type === "SUBJECTIVE" ? (
+                            <Button size="sm" variant="secondary" disabled>
+                              Subjective Paper
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => navigate(`/student/tests/${test.id}`)}
+                            >
+                              Start Test
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadPaper(test.id)}
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            Export PDF
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>

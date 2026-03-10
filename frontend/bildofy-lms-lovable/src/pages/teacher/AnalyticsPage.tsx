@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { SubjectPerformanceChart } from "@/components/analytics/AnalyticsCharts";
 import { StudentTable } from "@/components/analytics/StudentTable";
+import { StatCard } from "@/components/cards/StatCard";
 import {
   Users,
   ClipboardCheck,
   TrendingUp,
-  Plus,
-  BarChart3,
-  BookOpen,
   Settings,
   LogOut,
-  Sparkles,
+  CalendarCheck,
 } from 'lucide-react';
 
 const AnalyticsPage = () => {
@@ -66,6 +64,17 @@ const AnalyticsPage = () => {
       </header>
       <div className="container mx-auto py-6 space-y-8">
         <h1 className="text-2xl font-bold">Class Analytics</h1>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard title="Students" value={overview.class?.students ?? 0} icon={Users} />
+          <StatCard title="Average Score" value={overview.class?.average_score ?? 0} icon={ClipboardCheck} />
+          <StatCard title="Class Average" value={`${overview.class?.average_percentage ?? 0}%`} icon={TrendingUp} />
+          <StatCard
+            title="Attendance"
+            value={`${overview.class?.attendance_percentage ?? 0}%`}
+            icon={CalendarCheck}
+          />
+        </div>
 
         <SubjectPerformanceChart data={overview.subjects} />
 

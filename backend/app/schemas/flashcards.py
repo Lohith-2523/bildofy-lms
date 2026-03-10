@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import List
 
+from app.schemas.common import ClientContext
+
 
 class Flashcard(BaseModel):
     front: str
@@ -12,3 +14,9 @@ class FlashcardSetResponse(BaseModel):
     subject: str
     chapter: str
     cards: List[Flashcard]
+
+
+class FlashcardsGenerateRequest(BaseModel):
+    subject: str
+    chapter: str
+    context: ClientContext

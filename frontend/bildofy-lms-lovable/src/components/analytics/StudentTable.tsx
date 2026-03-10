@@ -7,15 +7,17 @@ export const StudentTable = ({ students }: { students: any[] }) => (
           <th>Attempts</th>
           <th>Avg Score</th>
           <th>Avg %</th>
+          <th>Attendance %</th>
         </tr>
       </thead>
       <tbody>
         {students.map(s => (
           <tr key={s.student_id} className="border-t">
-            <td>{s.name}</td>
+            <td>{s.name || `Student ${s.student_id}`}</td>
             <td>{s.attempts}</td>
             <td>{s.average_score}</td>
             <td>{s.average_percentage}%</td>
+            <td>{s.attendance_percentage ?? 0}%</td>
           </tr>
         ))}
       </tbody>

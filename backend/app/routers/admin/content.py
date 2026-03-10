@@ -5,8 +5,9 @@ from sqlalchemy import select
 from app.db.session import get_db
 from app.models.assignments import Assignment
 from app.models.test import Test
+from app.routers.admin._guards import admin_guard
 
-router = APIRouter(prefix="/api/admin/content", tags=["Admin Content"])
+router = APIRouter(prefix="/api/admin/content", tags=["Admin Content"], dependencies=[admin_guard])
 
 
 @router.get("/assignments")

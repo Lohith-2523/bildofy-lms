@@ -20,9 +20,21 @@ import TestsPage from "./pages/student/TestsPage";
 import AssignmentsPage from "./pages/student/AssignmentsPage";
 import FlashcardsPage from "./pages/student/FlashcardsPage";
 import DoubtChatPage from "./pages/student/DoubtChatPage";
+import StudentAttendancePage from "./pages/student/AttendancePage";
 
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import CreateAssignmentPage from "./pages/teacher/CreateAssignmentPage";
+import CreateTestPage from "./pages/teacher/CreateTestPage";
+import AIContentPage from "./pages/teacher/AIContentPage";
+import SubmissionsPage from "./pages/teacher/SubmissionsPage";
+import TeacherAttendancePage from "./pages/teacher/AttendancePage";
 import ParentDashboard from "./pages/parent/ParentDashboard";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminTeachersPage from "./pages/admin/AdminTeachersPage";
+import AdminClassesSubjectsPage from "./pages/admin/AdminClassesSubjectsPage";
+import AdminBulkImportPage from "./pages/admin/AdminBulkImportPage";
+import AdminInfrastructurePage from "./pages/admin/AdminInfrastructurePage";
+import AdminSystemConfigPage from "./pages/admin/AdminSystemConfigPage";
 
 import NotFound from "./pages/NotFound";
 
@@ -59,6 +71,10 @@ const RootRedirect = () => {
     return <Navigate to="/parent" replace />;
   }
 
+  if (user.role === "admin") {
+    return <Navigate to="/admin" replace />;
+  }
+
   return <Navigate to="/login" replace />;
 };
 
@@ -89,6 +105,7 @@ const AppRoutes = () => (
       <Route path="assignments" element={<AssignmentsPage />} />
       <Route path="flashcards" element={<FlashcardsPage />} />
       <Route path="doubt-chat" element={<DoubtChatPage />} />
+      <Route path="attendance" element={<StudentAttendancePage />} />
     </Route>
 
 
@@ -102,10 +119,50 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/teacher/create-assignment"
+      element={
+        <ProtectedRoute role="teacher">
+          <CreateAssignmentPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/teacher/create-test"
+      element={
+        <ProtectedRoute role="teacher">
+          <CreateTestPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/teacher/ai-content"
+      element={
+        <ProtectedRoute role="teacher">
+          <AIContentPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/teacher/submissions"
+      element={
+        <ProtectedRoute role="teacher">
+          <SubmissionsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/teacher/analytics"
       element={
         <ProtectedRoute role="teacher">
           <AnalyticsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/teacher/attendance"
+      element={
+        <ProtectedRoute role="teacher">
+          <TeacherAttendancePage />
         </ProtectedRoute>
       }
     />
@@ -123,6 +180,55 @@ const AppRoutes = () => (
       }
     />
 
+    {/* Admin Routes */}
+    <Route
+      path="/admin"
+      element={
+        <ProtectedRoute role="admin">
+          <AdminDashboardPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/teachers"
+      element={
+        <ProtectedRoute role="admin">
+          <AdminTeachersPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/classes-subjects"
+      element={
+        <ProtectedRoute role="admin">
+          <AdminClassesSubjectsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/bulk-import"
+      element={
+        <ProtectedRoute role="admin">
+          <AdminBulkImportPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/infrastructure"
+      element={
+        <ProtectedRoute role="admin">
+          <AdminInfrastructurePage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/system-config"
+      element={
+        <ProtectedRoute role="admin">
+          <AdminSystemConfigPage />
+        </ProtectedRoute>
+      }
+    />
     {/* Catch-all */}
     <Route path="*" element={<NotFound />} />
   </Routes>

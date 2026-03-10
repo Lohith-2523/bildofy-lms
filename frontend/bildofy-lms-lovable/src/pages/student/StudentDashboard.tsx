@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StudentHeader } from '@/components/layout/StudentHeader';
 import { ActionCard } from '@/components/cards/ActionCard';
@@ -14,10 +14,10 @@ import {
   Play,
   MessageCircleQuestion,
   Target,
-  Clock,
   TrendingUp,
   Zap,
   Trophy,
+  CalendarCheck,
 } from 'lucide-react';
 import { addDays } from 'date-fns';
 
@@ -37,7 +37,6 @@ const mockStats = {
   testsCompleted: 24,
   assignmentsSubmitted: 18,
   accuracy: 78,
-  weeklyStudyTime: '12h 30m',
   xpThisWeek: 850,
 };
 
@@ -77,6 +76,25 @@ const mockEvents = [
 const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [analytics, setAnalytics] = useState<any | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+
+    fetch('http://localhost:8000/analytics/overview', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load analytics');
+        return res.json();
+      })
+      .then(setAnalytics)
+      .catch(() => null);
+  }, []);
+
+  const studentMetrics = analytics?.scope === 'student' ? analytics.data : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,6 +146,13 @@ const StudentDashboard: React.FC = () => {
                   onClick={() => navigate('/student/assignments')}
                 />
                 <ActionCard
+                  title="Attendance"
+                  description="Track your daily attendance"
+                  icon={CalendarCheck}
+                  xpReward={0}
+                  onClick={() => navigate('/student/attendance')}
+                />
+                <ActionCard
                   title="Study Flashcards"
                   description="Review and memorize key concepts"
                   icon={Layers}
@@ -175,15 +200,15 @@ const StudentDashboard: React.FC = () => {
                 />
                 <StatCard
                   title="Accuracy"
-                  value={`${mockStats.accuracy}%`}
+                  value={`${studentMetrics?.average_percentage ?? mockStats.accuracy}%`}
                   icon={Trophy}
                   trend={{ value: 3, isPositive: true }}
                 />
                 <StatCard
-                  title="Study Time"
-                  value={mockStats.weeklyStudyTime}
-                  icon={Clock}
-                  description="This week"
+                  title="Attendance"
+                  value={`${studentMetrics?.attendance_percentage ?? 0}%`}
+                  icon={CalendarCheck}
+                  description="Overall"
                 />
               </div>
             </section>

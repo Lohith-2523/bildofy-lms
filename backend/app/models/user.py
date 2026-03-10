@@ -18,6 +18,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
+    # Single display name field (not split into first/last) to support initials and mononyms.
     name = Column(String, nullable=True)
     class_id = Column(Integer, ForeignKey("classes.id"), nullable=True)
 

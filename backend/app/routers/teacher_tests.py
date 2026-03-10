@@ -83,7 +83,7 @@ async def get_subject_results(
         results.append(
             StudentTestResult(
                 student_id=student_id,
-                student_name=student_name,
+                student_name=student_name or f"Student {student_id}",
                 test_id=attempt.test_id,
                 test_title=test_title,
                 score=attempt.score,

@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Plus,
   BarChart3,
+  CalendarCheck,
   BookOpen,
   Settings,
   LogOut,
@@ -117,6 +118,15 @@ const TeacherDashboard: React.FC = () => {
               <BarChart3 className="w-6 h-6 text-primary" />
               <span>View Analytics</span>
             </Button>
+
+            <Button
+              variant="action"
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate('/teacher/attendance')}
+            >
+              <CalendarCheck className="w-6 h-6 text-primary" />
+              <span>Take Attendance</span>
+            </Button>
           </div>
         </section>
 
@@ -141,6 +151,11 @@ const TeacherDashboard: React.FC = () => {
                 title="Class Average"
                 value={`${classData.average_percentage}%`}
                 icon={TrendingUp}
+              />
+              <StatCard
+                title="Attendance"
+                value={`${classData.attendance_percentage}%`}
+                icon={CalendarCheck}
               />
             </div>
           </section>

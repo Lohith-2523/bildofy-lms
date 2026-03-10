@@ -20,6 +20,8 @@ from app.routers.student import (
     progress_router,
     sync_router,
     teacher_notes_router,
+    assignments_router as student_assignments_router,
+    attendance_router as student_attendance_router,
     subjects as student_subjects,
     notes_storage
 )
@@ -29,6 +31,8 @@ from app.routers.teacher import (
     tests_router as teacher_tests_router,
     ai_tools_router,
     reports_router,
+    subjects_router as teacher_subjects_router,
+    attendance_router as teacher_attendance_router,
     students as teacher_students,
 )
 
@@ -42,6 +46,7 @@ from app.routers.admin import (
     users_router as admin_users_router,
     content_router as admin_content_router,
     system_router as admin_system_router,
+    dashboard_router as admin_dashboard_router,
 )
 
 
@@ -90,6 +95,8 @@ app.include_router(ai_chat_router)
 app.include_router(progress_router)
 app.include_router(sync_router)
 app.include_router(teacher_notes_router)
+app.include_router(student_assignments_router)
+app.include_router(student_attendance_router)
 app.include_router(student_subjects.router)
 
 app.include_router(analytics.router)
@@ -101,6 +108,8 @@ app.include_router(assignments_router)
 app.include_router(teacher_tests_router)
 app.include_router(ai_tools_router)
 app.include_router(reports_router)
+app.include_router(teacher_subjects_router)
+app.include_router(teacher_attendance_router)
 app.include_router(teacher_students.router)
 
 # Parent routers
@@ -112,6 +121,7 @@ app.include_router(parent_insights_router)
 app.include_router(admin_users_router)
 app.include_router(admin_content_router)
 app.include_router(admin_system_router)
+app.include_router(admin_dashboard_router)
 app.include_router(teacher_tests.router)
 
 # -------------------------------------------------------------------

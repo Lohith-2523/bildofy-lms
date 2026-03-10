@@ -55,6 +55,7 @@ async def signup_user(payload: SignupRequest, db: AsyncSession):
         class_id = classroom.id
 
     user = User(
+        name=payload.name,
         email=payload.email,
         password_hash=hash_password(payload.password),
         role=UserRole(payload.role),

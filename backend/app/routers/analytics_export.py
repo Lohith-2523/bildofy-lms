@@ -20,9 +20,9 @@ async def export_students_csv(
     if current_user.role != UserRole.teacher:
         raise HTTPException(status_code=403)
 
-    students = await StudentAnalyticsService.class_students_overview(
+    students = await StudentAnalyticsService.teacher_students_overview(
         db=db,
-        class_id=current_user.class_id,
+        teacher_id=current_user.id,
     )
 
     buffer = StringIO()

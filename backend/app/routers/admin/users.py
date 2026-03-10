@@ -8,8 +8,9 @@ from app.services.admin_user_service import (
     update_user_role,
     disable_user,
 )
+from app.routers.admin._guards import admin_guard
 
-router = APIRouter(prefix="/api/admin/users", tags=["Admin Users"])
+router = APIRouter(prefix="/api/admin/users", tags=["Admin Users"], dependencies=[admin_guard])
 
 
 @router.get("/")

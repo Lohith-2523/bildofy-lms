@@ -6,6 +6,7 @@ from enum import Enum
 class SubjectType(str, Enum):
     core = "core"
     elective = "elective"
+    extracurricular = "extracurricular"
 
 
 class SubjectCreateRequest(BaseModel):

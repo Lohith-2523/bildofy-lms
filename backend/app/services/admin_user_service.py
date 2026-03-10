@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.user import User
+from fastapi import HTTPException
 
 
 async def list_users(db: AsyncSession):
@@ -51,10 +52,7 @@ async def disable_user(
     if not user:
         return {"error": "User not found"}
 
-    user.is_active = False
-    await db.commit()
-
-    return {
-        "user_id": user.id,
-        "disabled": True,
-    }
+    raise HTTPException(
+        status_code=400,
+        detail="User disable is not supported because 'is_active' is not present in schema",
+    )

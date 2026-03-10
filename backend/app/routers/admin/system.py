@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 from app.config import get_settings
+from app.routers.admin._guards import admin_guard
 
-router = APIRouter(prefix="/api/admin/system", tags=["Admin System"])
+router = APIRouter(prefix="/api/admin/system", tags=["Admin System"], dependencies=[admin_guard])
 
 
 @router.get("/config")

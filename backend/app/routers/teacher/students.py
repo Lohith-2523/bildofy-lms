@@ -25,6 +25,7 @@ async def list_students_for_teacher(
     return [
         {
             "id": student.id,
+            "name": student.name or f"Student {student.id}",
             "email": student.email,
             "class_id": student.class_id,
         }
